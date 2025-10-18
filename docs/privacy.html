@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Privacy Policy — Feather AI</title>
+  <style>
+    body { background:#000; color:#eee; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial; padding:32px; max-width:900px; margin:0 auto; }
+    a { color:#7ec8ff; }
+    h1 { margin-bottom:8px; }
+    h2 { margin-top:24px; }
+    p { line-height:1.6; color:#ccc; }
+    .muted { color:#aaa; font-size:14px; }
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy</h1>
+  <div class="muted">Last updated: <span id="date"></span></div>
+
+  <h2>Information We Collect</h2>
+  <p>We may process publicly available market data and user-submitted feedback. We do not intentionally collect personal information unless you provide it through the feedback form.</p>
+
+  <h2>How We Use Information</h2>
+  <p>To improve analysis quality, detect issues, and enhance product features. Aggregated, non-identifying information may be used for analytics.</p>
+
+  <h2>Data Retention</h2>
+  <p>Feedback entries are stored as JSON lines and may be retained for debugging and product improvement purposes.</p>
+
+  <h2>Third-Party Services</h2>
+  <p>News and market data may be fetched from third-party providers (e.g., RSS, NewsAPI, NewsData, exchanges). Their privacy practices apply when you visit their sites.</p>
+
+  <h2>Your Choices</h2>
+  <p>You may choose not to submit feedback. If you submitted sensitive data by mistake, contact us to request deletion.</p>
+
+  <p><a href="index.html">← Back to app</a></p>
+
+  <script>
+    document.getElementById('date').textContent = new Date().toISOString().slice(0,10);
+  </script>
+</body>
+</html>
