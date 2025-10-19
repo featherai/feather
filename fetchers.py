@@ -14,6 +14,10 @@ import ccxt
 import feedparser
 from urllib.parse import urljoin, urlparse
 try:
+    from polygon import RESTClient
+except Exception:
+    RESTClient = None
+try:
     from newspaper import Article
 except Exception:
     Article = None
