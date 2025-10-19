@@ -1,0 +1,17 @@
+# Minimal requirements for Render free deployment (lightweight)
+Flask==3.0.3
+Flask-Cors==4.0.0
+waitress==3.0.0
+python-dotenv==1.0.1
+requests==2.32.3
+feedparser==6.0.11
+newspaper3k==0.2.8
+nltk==3.9.1
+numpy==2.1.2
+pandas==2.2.3
+scikit-learn==1.5.2
+lxml==5.3.0
+beautifulsoup4==4.12.3
+yfinance==0.2.43
+ccxt==4.4.49
+web3==6.20.3
