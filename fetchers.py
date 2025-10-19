@@ -82,6 +82,48 @@ def fetch_stock_history_yfinance(symbol: str, period: str = "1mo"):
         ticker = yf.Ticker(symbol)
         df = ticker.history(period=period)
         if df is None or df.empty:
+            try:
+                df = ticker.history(period=period, interval="1d", auto_adjust=True, actions=False)
+            except Exception:
+                df = None
+        if df is None or df.empty:
+            for p in ["3mo", "6mo", "1y"]:
+                try:
+                    dd = ticker.history(period=p, interval="1d", auto_adjust=True, actions=False)
+                    if dd is not None and not dd.empty:
+                        df = dd
+                        break
+                except Exception:
+                    continue
+        if df is None or df.empty:
+            try:
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=6mo&interval=1d"
+                r = requests.get(url, headers=HEADERS, timeout=12)
+                if r.ok:
+                    data = r.json()
+                    res = data.get("chart", {}).get("result", [])
+                    if res:
+                        res0 = res[0]
+                        ts = res0.get("timestamp", []) or []
+                        q = res0.get("indicators", {}).get("quote", [{}])[0]
+                        if ts and q:
+                            o = q.get("open", [])
+                            h = q.get("high", [])
+                            l = q.get("low", [])
+                            c = q.get("close", [])
+                            v = q.get("volume", [])
+                            ln = min(len(ts), len(o), len(h), len(l), len(c), len(v))
+                            idx = pd.to_datetime(ts[:ln], unit="s")
+                            df = pd.DataFrame({
+                                "Open": list(o[:ln]),
+                                "High": list(h[:ln]),
+                                "Low": list(l[:ln]),
+                                "Close": list(c[:ln]),
+                                "Volume": list(v[:ln]),
+                            }, index=idx)
+            except Exception:
+                df = None
+        if df is None or df.empty:
             logger.warning("yfinance returned no data for %s", symbol)
             return None
         if not _cache_disabled():
