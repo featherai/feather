@@ -167,6 +167,8 @@ def train_asset_logreg(tickers: List[str] | None = None, period: str = "6mo", wi
 
     Returns path to the saved .pt file. A meta JSON with feature_names and normalization is also saved.
     """
+    if not TORCH_AVAILABLE:
+        raise RuntimeError("PyTorch is not available")
     if tickers is None:
         tickers = ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "TSLA"]
 
@@ -216,7 +218,9 @@ def train_asset_logreg(tickers: List[str] | None = None, period: str = "6mo", wi
     return ASSET_LOGREG_PT
 
 
-def load_asset_logreg(device: torch.device | None = None) -> tuple[LogisticRiskModel, Dict[str, Any]]:
+def load_asset_logreg(device: Any | None = None) -> tuple[LogisticRiskModel, Dict[str, Any]]:
+    if not TORCH_AVAILABLE:
+        raise FileNotFoundError("Asset model artifacts not found")
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not os.path.exists(ASSET_LOGREG_PT) or not os.path.exists(ASSET_LOGREG_META):
@@ -232,6 +236,8 @@ def load_asset_logreg(device: torch.device | None = None) -> tuple[LogisticRiskM
 
 def infer_asset_logreg_from_df(df: pd.DataFrame, model: LogisticRiskModel, meta: Dict[str, Any]) -> tuple[float, Dict[str, float]]:
     """Return (probability_of_future_drawdown, contribs_by_feature)"""
+    if not TORCH_AVAILABLE:
+        raise RuntimeError("PyTorch is not available")
     feats = _window_features(df, meta.get("window", 30))
     # Ensure vector ordering
     xs = np.array([feats.get(k, 0.0) for k in meta["feature_names"]], dtype=np.float32)
@@ -255,19 +261,23 @@ def infer_asset_logreg_from_df(df: pd.DataFrame, model: LogisticRiskModel, meta:
 # Dual-head model and training
 # ----------------------------
 
+if TORCH_AVAILABLE:
+    class DualLogisticSignalModel(nn.Module):
+        """Two-output linear model:
+        - output[0]: drawdown event (1 if drawdown <= drawdown_thresh)
+        - output[1]: up move event (1 if horizon return >= up_return_thresh)
+        """
 
-class DualLogisticSignalModel(nn.Module):
-    """Two-output linear model:
-    - output[0]: drawdown event (1 if drawdown <= drawdown_thresh)
-    - output[1]: up move event (1 if horizon return >= up_return_thresh)
-    """
+        def __init__(self, input_dim: int):
+            super().__init__()
+            self.linear = nn.Linear(input_dim, 2)
 
-    def __init__(self, input_dim: int):
-        super().__init__()
-        self.linear = nn.Linear(input_dim, 2)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.linear(x)
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return self.linear(x)
+else:
+    class DualLogisticSignalModel:
+        def __init__(self, input_dim: int):
+            self.input_dim = input_dim
 
 
 def _future_up_label(df: pd.DataFrame, horizon: int, ret_thresh: float) -> int:
@@ -356,6 +366,8 @@ def train_asset_dual(
     seed: int = 42,
 ) -> str:
     """Train a dual-head logistic model for risk (down) and direction (up)."""
+    if not TORCH_AVAILABLE:
+        raise RuntimeError("PyTorch is not available")
     if tickers is None:
         tickers = ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "TSLA", "NVDA", "BTC-USD", "ETH-USD", "SOL-USD"]
 
@@ -459,7 +471,9 @@ def train_asset_dual(
     return ASSET_DUAL_PT
 
 
-def load_asset_dual(device: torch.device | None = None) -> tuple[DualLogisticSignalModel, Dict[str, Any]]:
+def load_asset_dual(device: Any | None = None) -> tuple[DualLogisticSignalModel, Dict[str, Any]]:
+    if not TORCH_AVAILABLE:
+        raise FileNotFoundError("Asset dual model artifacts not found")
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not os.path.exists(ASSET_DUAL_PT) or not os.path.exists(ASSET_DUAL_META):
@@ -476,6 +490,8 @@ def load_asset_dual(device: torch.device | None = None) -> tuple[DualLogisticSig
 def infer_asset_dual_from_df(
     df: pd.DataFrame, model: DualLogisticSignalModel, meta: Dict[str, Any]
 ) -> tuple[float, float, Dict[str, float], Dict[str, float]]:
+    if not TORCH_AVAILABLE:
+        raise RuntimeError("PyTorch is not available")
     feats = _window_features(df, meta.get("window", 30))
     xs = np.array([feats.get(k, 0.0) for k in meta["feature_names"]], dtype=np.float32)
     xs = np.nan_to_num(xs, nan=0.0, posinf=0.0, neginf=0.0)
