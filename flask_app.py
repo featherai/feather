@@ -39,7 +39,7 @@ def add_cors_headers(response):
 
 @app.route('/')
 def index():
-    return render_template('zbi2.html')
+    return 'Feather API is running', 200
 
 @app.route('/analyze', methods=['OPTIONS', 'POST'])
 def analyze():

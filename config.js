@@ -1,2 +1,2 @@
 
-window.API_BASE = 'https://opulent-fishstick-9wxrwvj9q6v366p-5000.app.github.dev';
+window.API_BASE = 'https://fantastic-lamp-46r564w7qwp27pwx-5000.app.github.dev';
