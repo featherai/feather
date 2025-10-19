@@ -9,14 +9,16 @@ import pandas as pd
 try:
     import torch
     import torch.nn as nn
-    from sklearn.metrics import roc_auc_score, average_precision_score
     TORCH_AVAILABLE = True
-except ImportError:
-    torch = None
-    nn = None
+except Exception:
+    TORCH_AVAILABLE = False
+
+# Optional metrics (used only during training/validation)
+try:
+    from sklearn.metrics import roc_auc_score, average_precision_score
+except Exception:
     roc_auc_score = None
     average_precision_score = None
-    TORCH_AVAILABLE = False
 
 # Dummy classes/functions if torch not available
 from utils import logger
@@ -37,7 +39,7 @@ if TORCH_AVAILABLE:
             super().__init__()
             self.linear = nn.Linear(input_dim, 1)
 
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
+        def forward(self, x: Any) -> Any:
             # returns logits
             return self.linear(x).squeeze(-1)
 else:
@@ -272,7 +274,7 @@ if TORCH_AVAILABLE:
             super().__init__()
             self.linear = nn.Linear(input_dim, 2)
 
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
+        def forward(self, x: Any) -> Any:
             return self.linear(x)
 else:
     class DualLogisticSignalModel:
