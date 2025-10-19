@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Feather AI — Real-time Financial Risk Intelligence</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#000;
+      color:#fff;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
+      padding:32px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      min-height:100vh;
+    }
+
+    h1 {
+      font-size:clamp(28px,5vw,48px);
+      margin-bottom:16px;
+      text-align:center;
+      letter-spacing:-0.3px;
+    }
+    .brand { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .brand-logo { width:48px; height:48px; object-fit:cover; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+    p {
+      color:#ccc;
+      margin-bottom:28px;
+      text-align:center;
+      max-width:600px;
+      line-height:1.5;
+    }
+    .analyzer {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:18px;
+      background:rgba(255,255,255,0.02);
+      padding:28px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.05);
+      width:100%;
+      max-width:600px;
+    }
+    select, input {
+      background:#111;
+      color:#fff;
+      border:1px solid rgba(255,255,255,0.1);
+      padding:12px 14px;
+      border-radius:8px;
+      width:100%;
+      font-size:16px;
+    }
+    button {
+      background:#fff;
+      color:#000;
+      border:none;
+      border-radius:8px;
+      padding:12px 20px;
+      font-weight:700;
+      cursor:pointer;
+      width:100%;
+      transition:0.2s;
+    }
+    button:hover { background:#ddd; }
+    .result {
+      margin-top:24px;
+      background:rgba(255,255,255,0.03);
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.04);
+      padding:20px;
+      max-width:600px;
+      width:100%;
+      display:none;
+      animation:fadeIn 0.5s ease;
+    }
+    .feedback {
+      margin-top:14px;
+      padding-top:14px;
+      border-top:1px dashed rgba(255,255,255,0.08);
+      display:none;
+      gap:10px;
+    }
+    .feedback h4 { font-size:16px; margin-bottom:8px; color:#eee; }
+    .feedback textarea { width:100%; min-height:80px; background:#0f0f0f; color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px; }
+    .feedback .actions { display:flex; justify-content:flex-end; margin-top:8px; }
+    .feedback .actions button { width:auto; }
+    @keyframes fadeIn {
+      from {opacity:0; transform:translateY(6px);}
+      to {opacity:1; transform:translateY(0);}
+    }
+    .badge {
+      display:inline-block;
+      background:#222;
+      color:#ffcc00;
+      padding:4px 10px;
+      border-radius:999px;
+      font-weight:600;
+      font-size:13px;
+      margin-top:8px;
+    }
+    .footer { margin-top:auto; width:100%; max-width:900px; color:#aaa; font-size:13px; padding:16px 0; text-align:center; border-top:1px solid rgba(255,255,255,0.06); }
+    .footer a { color:#bbb; text-decoration:none; margin:0 10px; }
+    .footer a:hover { color:#fff; text-decoration:underline; }
+  </style>
+  <script>if (window.LightweightCharts) delete window.LightweightCharts;</script>
+</head>
+<body>
+  <div class="brand">
+    <img class="brand-logo" src="{{ url_for('static', filename='img/feato.jpg') }}" alt="Feato" />
+    <h1>Feather AI</h1>
+  </div>
+  <p>Analyze any crypto or stock in real-time for drawdown and upside risk — powered by Feather’s intelligence engine.</p>
+
+  <div class="analyzer">
+    <select id="assetType">
+      <option value="crypto">Crypto</option>
+      <option value="stock">Stock</option>
+    </select>
+
+    <input id="assetInput" type="text" placeholder="Enter crypto address or stock ticker (e.g. BTC or AAPL)" />
+
+    <button onclick="analyze()">⚡ Analyze</button>
+  </div>
+
+  <div id="result" class="result">
+    <h3 id="assetTitle"></h3>
+    <div id="riskScore" class="badge"></div>
+    <p id="summary" style="margin-top:12px; color:#ddd;"></p>
+    <div id="feedbackBox" class="feedback">
+      <h4>Share your feedback</h4>
+      <textarea id="feedbackText" placeholder="What did you think about this analysis? Suggestions, issues, accuracy..."></textarea>
+      <div class="actions">
+        <button id="feedbackBtn" onclick="submitFeedback()">Send feedback</button>
+      </div>
+      <div id="feedbackStatus" style="margin-top:8px; color:#aaa; font-size:13px;"></div>
+    </div>
+  </div>
+
+  <div id="chart" style="margin-top:24px; width:100%; max-width:600px; height:400px;"></div>
+
+  <div class="footer">
+    <span>© <span id="year"></span> Feather AI</span>
+    ·
+    <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+    ·
+    <a href="/terms" target="_blank" rel="noopener">Terms of Use</a>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var y = document.getElementById('year');
+      if (y) y.textContent = new Date().getFullYear();
+    });
+    function analyze() {
+      const type = document.getElementById('assetType').value;
+      const asset = document.getElementById('assetInput').value.trim();
+      const resultDiv = document.getElementById('result');
+      const title = document.getElementById('assetTitle');
+      const risk = document.getElementById('riskScore');
+      const summary = document.getElementById('summary');
+
+      if (!asset) {
+        alert("Please enter a valid asset name or ticker.");
+        return;
+      }
+
+      // Show loading
+      title.innerText = "Analyzing...";
+      resultDiv.style.display = "block";
+      document.getElementById('feedbackBox').style.display = 'none';
+      document.getElementById('feedbackStatus').innerText = '';
+
+      // Call Flask API with timeout
+      fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: type, asset: asset })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Server error');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.error) {
+          alert("Error: " + data.error);
+          resultDiv.style.display = "none";
+          return;
+        }
+
+        const riskLevel = data.risk_level;
+        const color = riskLevel === 'GREEN' ? '#00ff88' : riskLevel === 'YELLOW' ? '#ffcc00' : '#ff4444';
+        let displayName = data.coin_name || data.asset.split('/')[0];
+        let topicsText = data.topics.map((t, i) => `Topic ${i+1}: ${t}`).join('; ');
+        let articlesText = data.top_articles.slice(0, 3).map(a => `- ${a.title}`).join('\n');
+        const summaryText = `${displayName}: Prob Drawdown ${data.prob_drawdown.toFixed(3)}, Prob Up ${data.prob_up.toFixed(3)}. News Sentiment: ${data.news_sentiment.toFixed(2)} (${data.article_count} articles).\n\nTopics: ${topicsText}\n\nEvents: ${Object.entries(data.events).filter(([k,v])=>v>0).map(([k,v])=>`${k}:${v}`).join(', ') || 'None'}\n\nTop Articles:\n${articlesText}`;
+
+        title.innerText = `${displayName} — ${type.charAt(0).toUpperCase() + type.slice(1)} Analysis`;
+        risk.innerText = `${riskLevel} (Score: ${data.risk_score})`;
+        risk.style.color = color;
+        summary.innerText = summaryText;
+        // Reveal feedback UI
+        const fbox = document.getElementById('feedbackBox');
+        fbox.style.display = 'block';
+        fbox.dataset.payload = JSON.stringify({
+          type, asset: data.asset,
+          risk_level: data.risk_level,
+          risk_score: data.risk_score,
+          prob_drawdown: data.prob_drawdown,
+          prob_up: data.prob_up,
+          article_count: data.article_count,
+          news_sentiment: data.news_sentiment
+        });
+
+        // Load chart with price data
+        loadChart2(displayName, type, data.price_data);
+      })
+      .catch(error => {
+        alert("Analysis failed: " + error.message + " (try again or use simple assets)");
+        resultDiv.style.display = "none";
+      });
+    }
+
+    function submitFeedback() {
+      const fbox = document.getElementById('feedbackBox');
+      const payload = JSON.parse(fbox.dataset.payload || '{}');
+      const comment = (document.getElementById('feedbackText').value || '').trim();
+      const status = document.getElementById('feedbackStatus');
+      if (!comment) { status.innerText = 'Please write something first.'; return; }
+      status.innerText = 'Sending...';
+      fetch('/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, comment })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.status === 'ok') {
+          status.innerText = 'Thanks! Your feedback was saved.';
+          document.getElementById('feedbackText').value = '';
+        } else {
+          status.innerText = 'Error: ' + (res.error || 'unknown');
+        }
+      })
+      .catch(err => { status.innerText = 'Error sending feedback.'; });
+    }
+
+    function loadChart2(asset, type, priceData) {
+      const chartContainer = document.getElementById('chart');
+      chartContainer.innerHTML = ''; // Clear previous
+      // Map to TradingView ticker
+      const tickerMap = {
+        'CHAINLINK': 'LINK',
+        'BITCOIN': 'BTC',
+        'ETHEREUM': 'ETH',
+        'CARDANO': 'ADA',
+        'BINANCECOIN': 'BNB',
+        'SOLANA': 'SOL',
+        'POLKADOT': 'DOT',
+        'MATIC-NETWORK': 'MATIC',
+        'AVALANCHE-2': 'AVAX',
+        'TERRA-LUNA': 'LUNA',
+        'DOGECOIN': 'DOGE',
+        'SHIBA-INU': 'SHIB',
+        'PANCAKESWAP-TOKEN': 'CAKE',
+        'SUSHI': 'SUSHI',
+        'UNISWAP': 'UNI',
+        'AAVE': 'AAVE',
+        'COMPOUND-GOVERNANCE-TOKEN': 'COMP'
+      };
+      const ticker = tickerMap[asset.toUpperCase()] || asset.toUpperCase();
+      const symbol = type === 'crypto' ? `BINANCE:${ticker}USDT` : `NASDAQ:${asset}`;
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/tv.js?v=2';
+      script.onload = () => {
+        new TradingView.widget({
+          "container_id": "chart",
+          "symbol": symbol,
+          "interval": "D",
+          "timezone": "Etc/UTC",
+          "theme": "dark",
+          "style": "1",
+          "locale": "en",
+          "toolbar_bg": "#f1f3f6",
+          "enable_publishing": false,
+          "hide_top_toolbar": false,
+          "save_image": false,
+          "height": 400,
+          "width": "100%"
+        });
+      };
+      document.head.appendChild(script);
+    }
+  </script>
+</body>
+</html>
