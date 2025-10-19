@@ -8,3 +8,7 @@ Traceback (most recent call last):
   File "/workspaces/feather/risks.py", line 457, in analyze_asset
     from asset_model import load_asset_dual, infer_asset_dual_from_df
 ModuleNotFoundError: No module named 'asset_model'
+2025-10-19 15:04:23,418 - feather - WARNING - yfinance returned no data for NVDA
+2025-10-19 15:33:33,204 - feather - WARNING - yfinance returned no data for NVDA
+2025-10-19 15:34:18,967 - feather - WARNING - yfinance returned no data for NVDA
+2025-10-19 15:39:16,636 - feather - WARNING - yfinance returned no data for AAPL
