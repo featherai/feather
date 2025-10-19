@@ -4,10 +4,21 @@ from typing import List, Tuple, Dict, Any
 
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-from sklearn.metrics import roc_auc_score, average_precision_score
 
+# Make torch optional for lightweight backends
+try:
+    import torch
+    import torch.nn as nn
+    from sklearn.metrics import roc_auc_score, average_precision_score
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = None
+    roc_auc_score = None
+    average_precision_score = None
+    TORCH_AVAILABLE = False
+
+# Dummy classes/functions if torch not available
 from utils import logger
 from risks import extract_basic_features_from_ohlcv
 from fetchers import fetch_stock_history_yfinance
@@ -20,14 +31,23 @@ ASSET_DUAL_PT = os.path.join(MODEL_DIR, "asset_dual.pt")
 ASSET_DUAL_META = os.path.join(MODEL_DIR, "asset_dual.meta.json")
 
 
-class LogisticRiskModel(nn.Module):
-    def __init__(self, input_dim: int):
-        super().__init__()
-        self.linear = nn.Linear(input_dim, 1)
+if TORCH_AVAILABLE:
+    class LogisticRiskModel(nn.Module):
+        def __init__(self, input_dim: int):
+            super().__init__()
+            self.linear = nn.Linear(input_dim, 1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # returns logits
-        return self.linear(x).squeeze(-1)
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            # returns logits
+            return self.linear(x).squeeze(-1)
+else:
+    class LogisticRiskModel:
+        def __init__(self, input_dim: int):
+            self.input_dim = input_dim
+
+        def forward(self, x):
+            # Dummy: return zeros
+            return np.zeros(x.shape[0])
 
 
 def _window_features(df: pd.DataFrame, window: int) -> Dict[str, float]:
