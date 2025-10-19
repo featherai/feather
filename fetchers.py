@@ -75,15 +75,23 @@ def fetch_stock_history_yfinance(symbol: str, period: str = "1mo"):
         pandas.DataFrame: Historical stock data.
     """
     try:
+        # Normalize symbol to yfinance-compatible form
+        sym = str(symbol or "").strip().upper()
+        sym = sym.lstrip("$").replace(" ", "")
+        if ":" in sym:
+            sym = sym.split(":")[-1]
+        if not sym:
+            logger.warning("Empty symbol after normalization for %r", symbol)
+            return None
         # Try cache first (10 minutes TTL)
         cache_ttl = 600
-        cache_path = _cache_path("yf", {"symbol": symbol.upper(), "period": period})
+        cache_path = _cache_path("yf", {"symbol": sym, "period": period})
         if not _cache_disabled():
             cached = _read_cache_df(cache_path, ttl_seconds=cache_ttl)
             if cached is not None and not cached.empty:
                 return cached
 
-        ticker = yf.Ticker(symbol)
+        ticker = yf.Ticker(sym)
         df = ticker.history(period=period)
         if df is None or df.empty:
             try:
@@ -101,7 +109,7 @@ def fetch_stock_history_yfinance(symbol: str, period: str = "1mo"):
                     continue
         if df is None or df.empty:
             try:
-                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=6mo&interval=1d"
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?range=6mo&interval=1d"
                 r = requests.get(url, headers=HEADERS, timeout=12)
                 if r.ok:
                     data = r.json()
@@ -128,7 +136,7 @@ def fetch_stock_history_yfinance(symbol: str, period: str = "1mo"):
             except Exception:
                 df = None
         if df is None or df.empty:
-            logger.warning("yfinance returned no data for %s", symbol)
+            logger.warning("yfinance returned no data for %s", sym)
             return None
         if not _cache_disabled():
             _write_cache_df(cache_path, df)
