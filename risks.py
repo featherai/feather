@@ -482,41 +482,53 @@ def analyze_asset(symbol: str, period: str = "1mo", holder_concentration: float 
         except Exception:
             logger.exception("Dual ML inference failed; continuing with rule-based output")
         if "ml_dual" not in assessment["risk"]:
+            feats = assessment.get("features", {})
+            mom = float(feats.get("momentum_10", 0.0) or 0.0)
+            rsi = float(feats.get("rsi_14", 50.0) or 50.0)
+            vol = float(feats.get("volatility", 0.0) or 0.0)
+            sent = float(assessment.get("news", {}).get("sentiment", {}).get("avg_sentiment", 0.0) or 0.0)
+            adj_mom = mom
+            if adj_mom > 0.3:
+                adj_mom = 0.3
+            if adj_mom < -0.3:
+                adj_mom = -0.3
+            p_up = 0.5 + adj_mom * 0.8
+            if rsi >= 70.0:
+                p_up -= 0.08
+            elif rsi <= 30.0:
+                p_up += 0.08
+            p_up -= min(vol, 0.2) * 0.2
+            p_up += 0.12 * sent
+            if p_up < 0.01:
+                p_up = 0.01
+            if p_up > 0.99:
+                p_up = 0.99
+            p_down = 1.0 - p_up
+            assessment["risk"]["ml_dual"] = {
+                "prob_drawdown": float(p_down),
+                "prob_up": float(p_up),
+                "pred_drawdown": bool(p_down >= 0.5),
+                "pred_up": bool(p_up >= 0.5),
+                "thresholds": {"down": 0.5, "up": 0.5},
+                "top_contribs_down": [],
+                "top_contribs_up": [],
+                "horizon": 5,
+            }
+        # Insider signals for stocks only
+        if "/" not in symbol:
             try:
-                feats = assessment.get("features", {})
-                mom = float(feats.get("momentum_10", 0.0) or 0.0)
-                rsi = float(feats.get("rsi_14", 50.0) or 50.0)
-                vol = float(feats.get("volatility", 0.0) or 0.0)
-                sent = float(assessment.get("news", {}).get("sentiment", {}).get("avg_sentiment", 0.0) or 0.0)
-                adj_mom = mom
-                if adj_mom > 0.3:
-                    adj_mom = 0.3
-                if adj_mom < -0.3:
-                    adj_mom = -0.3
-                p_up = 0.5 + adj_mom * 0.8
-                if rsi >= 70.0:
-                    p_up -= 0.08
-                elif rsi <= 30.0:
-                    p_up += 0.08
-                p_up -= min(vol, 0.2) * 0.2
-                p_up += 0.12 * sent
-                if p_up < 0.01:
-                    p_up = 0.01
-                if p_up > 0.99:
-                    p_up = 0.99
-                p_down = 1.0 - p_up
-                assessment["risk"]["ml_dual"] = {
-                    "prob_drawdown": float(p_down),
-                    "prob_up": float(p_up),
-                    "pred_drawdown": bool(p_down >= 0.5),
-                    "pred_up": bool(p_up >= 0.5),
-                    "thresholds": {"down": 0.5, "up": 0.5},
-                    "top_contribs_down": [],
-                    "top_contribs_up": [],
-                    "horizon": 5,
-                }
+                from fetchers import fetch_insider_transactions
+                insider = fetch_insider_transactions(symbol, months=3)
+                if insider:
+                    assessment["insider_signals"] = insider
+                else:
+                    assessment["insider_signals"] = {"error": "No insider data or API not configured"}
             except Exception:
-                pass
+                logger.exception("Insider signals fetch failed")
+                assessment["insider_signals"] = {"error": "Failed to fetch insider signals"}
+        else:
+            assessment["insider_signals"] = {"note": "Insider signals not applicable for crypto"}
+
         return assessment
     except Exception:
         logger.exception("analyze_asset failed for %s", symbol)

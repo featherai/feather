@@ -6,7 +6,10 @@ import hashlib
 import re
 import html as htmlmod
 from typing import Optional, List, Dict
-from web3 import Web3
+try:
+    from web3 import Web3
+except Exception:
+    Web3 = None
 import yfinance as yf
 import pandas as pd
 import requests
@@ -835,7 +838,65 @@ def news_health_check(query: str, max_articles: int = 5, timeout_sec: int = 8) -
     except Exception as e:
         out["listing_scrape"] = {"ok": False, "count": 0, "error": str(e)}
 
-    return out
+def fetch_insider_transactions(symbol: str, months: int = 3) -> Optional[Dict]:
+    """
+    Fetch recent insider transactions for a stock symbol using Finnhub API.
+    Requires FINNHUB_API_KEY env var.
+
+    Returns dict: {'buys': count, 'sells': count, 'net_value': float, 'transactions': list of dicts}
+    """
+    api_key = os.getenv("FINNHUB_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        # Finnhub insider transactions endpoint
+        url = f"https://finnhub.io/api/v1/stock/insider-transactions?symbol={symbol.upper()}&token={api_key}"
+        resp = requests.get(url, timeout=15, headers=HEADERS)
+        resp.raise_for_status()
+        data = resp.json()
+
+        # Filter last N months
+        from datetime import datetime, timedelta
+        cutoff = datetime.now() - timedelta(days=months * 30)
+        recent = [t for t in data.get("data", []) if datetime.fromisoformat(t["transactionDate"]) > cutoff]
+
+        buys = 0
+        sells = 0
+        net_value = 0.0
+        transactions = []
+
+        for t in recent:
+            trans_type = t.get("transactionType", "").lower()
+            shares = t.get("change", 0)
+            price = t.get("transactionPrice", 0) or t.get("marketCap", 0) / t.get("share", 1) if t.get("share") else 0
+            value = shares * price
+
+            if trans_type in ("buy", "purchase"):
+                buys += 1
+                net_value += value
+            elif trans_type in ("sell", "sale"):
+                sells += 1
+                net_value -= value
+
+            transactions.append({
+                "date": t.get("transactionDate"),
+                "type": trans_type,
+                "shares": shares,
+                "price": price,
+                "value": value,
+                "filing_date": t.get("filingDate"),
+            })
+
+        return {
+            "buys": buys,
+            "sells": sells,
+            "net_value": net_value,
+            "transactions": transactions,
+        }
+    except Exception as e:
+        logger.exception("Failed to fetch insider transactions for %s", symbol)
+        return None
 
 def _news_cache_path(query: str, days: int) -> str:
     key = f"{query}_{days}"

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 try:
     from flask_cors import CORS
 except Exception:
@@ -39,7 +39,14 @@ def add_cors_headers(response):
 
 @app.route('/')
 def index():
-    return 'Feather API is running', 200
+    base = os.path.join(app.root_path, 'templates')
+    idx = os.path.join(base, 'index.html')
+    if os.path.exists(idx):
+        return render_template('index.html')
+    docs_index = os.path.join(app.root_path, 'docs', 'index.html')
+    if os.path.exists(docs_index):
+        return send_from_directory(os.path.join(app.root_path, 'docs'), 'index.html')
+    return ('Template index.html not found', 500)
 
 @app.route('/analyze', methods=['OPTIONS', 'POST'])
 def analyze():
@@ -127,6 +134,7 @@ def analyze():
             'topics': news.get('topics', []),
             'events': news.get('events', {}),
             'top_articles': news.get('top_articles', []),
+            'insider_signals': result.get('insider_signals', {}),
             'price_data': price_data
         }
         return jsonify(response)
@@ -136,10 +144,6 @@ def analyze():
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
-
-@app.route('/terms')
-def terms():
-    return render_template('terms.html')
 
 @app.route('/news_health', methods=['GET'])
 def news_health():
