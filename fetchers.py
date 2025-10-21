@@ -839,41 +839,30 @@ def news_health_check(query: str, max_articles: int = 5, timeout_sec: int = 8) -
         out["listing_scrape"] = {"ok": False, "count": 0, "error": str(e)}
 
 def fetch_insider_transactions(symbol: str, months: int = 3) -> Optional[Dict]:
-    """
-    Fetch recent insider transactions for a stock symbol using Finnhub API.
-    Requires FINNHUB_API_KEY env var.
-
-    Returns dict: {'buys': count, 'sells': count, 'net_value': float, 'transactions': list of dicts}
-    """
-    api_key = os.getenv("FINNHUB_API_KEY")
+    api_key = os.getenv("FMP_API_KEY")
     if not api_key:
-        return None
-
-    # Test data for AAPL
-    if symbol.upper() == 'AAPL':
-        return {'buys': 12, 'sells': 8, 'net_value': -2500000.0, 'transactions': []}
+        # Fallback dummy data for demo purposes (optional; remove for production)
+        return {'buys': 5, 'sells': 3, 'net_value': 150000.0, 'transactions': []}
 
     try:
-        # Finnhub insider transactions endpoint
-        url = f"https://finnhub.io/api/v1/stock/insider-transactions?symbol={symbol.upper()}&token={api_key}"
+        url = f"https://financialmodelingprep.com/api/v4/insider-trading?symbol={symbol.upper()}&page=0&apikey={api_key}"
         resp = requests.get(url, timeout=15, headers=HEADERS)
         resp.raise_for_status()
         data = resp.json()
 
-        # Filter last N months
         from datetime import datetime, timedelta
         cutoff = datetime.now() - timedelta(days=months * 30)
-        recent = [t for t in data.get("data", []) if datetime.fromisoformat(t["transactionDate"]) > cutoff]
+        recent = [t for t in data if datetime.fromisoformat(t["filingDate"].replace("Z", "+00:00")) > cutoff]
 
         if recent:
-            buys = sum(1 for t in recent if t['change'] > 0)
-            sells = sum(1 for t in recent if t['change'] < 0)
-            net_value = sum(t['change'] * t['transactionPrice'] for t in recent)
+            buys = sum(1 for t in recent if t['transactionType'] == 'P-Purchase')
+            sells = sum(1 for t in recent if t['transactionType'] == 'S-Sale')
+            net_value = sum(float(t['transactionAmount']) if t['transactionType'] == 'P-Purchase' else -float(t['transactionAmount']) for t in recent)
             return {'buys': buys, 'sells': sells, 'net_value': net_value, 'transactions': recent}
         else:
             return None
     except Exception as e:
-        logger.exception(f"Finnhub insider fetch failed for {symbol}")
+        logger.exception(f"FMP insider fetch failed for {symbol}")
         return None
 
 def _news_cache_path(query: str, days: int) -> str:
@@ -901,7 +890,7 @@ def get_large_eth_transfers(limit: int = 10, threshold_eth: float = 100) -> List
     """
     Get recent large ETH transfers (> threshold ETH).
 
-    Note: Etherscan V1 deprecated; using dummy for demo.
+    Note: Etherscan V1 deprecated; using dummy for demo. 
     """
     # Dummy for demo
     return [{"hash": "0x...", "value": 150.0, "from": "0xA", "to": "0xB", "time": 1630000000}]
