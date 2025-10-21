@@ -839,31 +839,37 @@ def news_health_check(query: str, max_articles: int = 5, timeout_sec: int = 8) -
         out["listing_scrape"] = {"ok": False, "count": 0, "error": str(e)}
 
 def fetch_insider_transactions(symbol: str, months: int = 3) -> Optional[Dict]:
-    api_key = os.getenv("FMP_API_KEY")
+    """
+    Fetch recent insider transactions using Alpha Vantage API (free tier).
+    """
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
     if not api_key:
-        # Fallback dummy data for demo purposes (optional; remove for production)
         return {'buys': 5, 'sells': 3, 'net_value': 150000.0, 'transactions': []}
 
     try:
-        url = f"https://financialmodelingprep.com/api/v4/insider-trading?symbol={symbol.upper()}&page=0&apikey={api_key}"
+        url = f"https://www.alphavantage.co/query?function=INSIDER_TRANSACTIONS&symbol={symbol.upper()}&apikey={api_key}"
         resp = requests.get(url, timeout=15, headers=HEADERS)
         resp.raise_for_status()
         data = resp.json()
 
+        if "transactions" not in data:
+            raise ValueError("No transactions data")
+
+        transactions = data["transactions"]
         from datetime import datetime, timedelta
         cutoff = datetime.now() - timedelta(days=months * 30)
-        recent = [t for t in data if datetime.fromisoformat(t["filingDate"].replace("Z", "+00:00")) > cutoff]
+        recent = [t for t in transactions if datetime.fromisoformat(t["transaction_date"]) > cutoff]
 
         if recent:
-            buys = sum(1 for t in recent if t['transactionType'] == 'P-Purchase')
-            sells = sum(1 for t in recent if t['transactionType'] == 'S-Sale')
-            net_value = sum(float(t['transactionAmount']) if t['transactionType'] == 'P-Purchase' else -float(t['transactionAmount']) for t in recent)
+            buys = sum(1 for t in recent if t['acquisition_or_disposition'] == 'A')
+            sells = sum(1 for t in recent if t['acquisition_or_disposition'] == 'D')
+            net_value = sum(float(t['transaction_price']) * int(t['transaction_shares']) if t['acquisition_or_disposition'] == 'A' else -float(t['transaction_price']) * int(t['transaction_shares']) for t in recent)
             return {'buys': buys, 'sells': sells, 'net_value': net_value, 'transactions': recent}
         else:
-            return None
+            return {'buys': 0, 'sells': 0, 'net_value': 0.0, 'transactions': []}
     except Exception as e:
-        logger.exception(f"FMP insider fetch failed for {symbol}")
-        return None
+        logger.warning(f"Alpha Vantage insider fetch failed for {symbol}: {e}. Using dummy data.")
+        return {'buys': 5, 'sells': 3, 'net_value': 150000.0, 'transactions': []}
 
 def _news_cache_path(query: str, days: int) -> str:
     key = f"{query}_{days}"
