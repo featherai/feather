@@ -528,6 +528,7 @@ def analyze_asset(symbol: str, period: str = "1mo", holder_concentration: float 
                 assessment["insider_signals"] = {"error": "Failed to fetch insider signals"}
         else:
             assessment["insider_signals"] = {"note": "Insider signals not applicable for crypto"}
+        logger.info(f"Insider signals for {symbol}: {assessment.get('insider_signals', 'NONE')}")
 
         return assessment
     except Exception:

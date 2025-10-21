@@ -8,6 +8,11 @@ import os
 import json
 import time
 # Load environment variables from .env BEFORE importing modules that read them
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from dotenv import load_dotenv
 load_dotenv()
 from risks import analyze_asset
