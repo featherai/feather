@@ -71,7 +71,7 @@ def analyze():
         symbol = asset.upper()
 
     try:
-        result = analyze_asset(symbol, period='1mo')
+        result = analyze_asset(symbol, period='3mo')
         risk = result['risk']
         ml = risk.get('ml_dual', {})
         news = result.get('news', {}).get('sentiment', {})

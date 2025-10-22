@@ -538,7 +538,83 @@ def analyze_asset(symbol: str, period: str = "1mo", holder_concentration: float 
             except Exception:
                 logger.exception("Crypto whale signals fetch failed")
                 assessment["insider_signals"] = {"error": "Failed to fetch whale signals"}
-        logger.info(f"Insider signals for {symbol}: {assessment.get('insider_signals', 'NONE')}")
+
+        # Blend additional signals into final risk score
+        try:
+            thr = get_thresholds()
+            base = float(assessment.get("risk", {}).get("score", 0) or 0)
+            adj = base
+
+            # News sentiment adjustment
+            try:
+                ns = float(assessment.get("news", {}).get("sentiment", {}).get("avg_sentiment", 0.0) or 0.0)
+                if ns <= -0.4:
+                    adj += 2
+                elif ns <= -0.2:
+                    adj += 1
+                elif ns >= 0.4:
+                    adj -= 2
+                elif ns >= 0.2:
+                    adj -= 1
+            except Exception:
+                pass
+
+            # ML probabilities adjustment
+            try:
+                md = assessment.get("risk", {}).get("ml_dual", {})
+                p_down = float(md.get("prob_drawdown", 0.5) or 0.5)
+                p_up = float(md.get("prob_up", 0.5) or 0.5)
+                if p_down >= 0.7:
+                    adj += 2
+                elif p_down >= 0.6:
+                    adj += 1
+                elif p_up >= 0.7:
+                    adj -= 2
+                elif p_up >= 0.6:
+                    adj -= 1
+            except Exception:
+                pass
+
+            # Insider/whale net flow adjustment
+            try:
+                ins = assessment.get("insider_signals", {})
+                net = float(ins.get("net_value", 0.0) or 0.0)
+                if "/" not in symbol:  # stocks
+                    if net <= -1e8:
+                        adj += 2
+                    elif net <= -1e7:
+                        adj += 1
+                    elif net >= 1e8:
+                        adj -= 2
+                    elif net >= 1e7:
+                        adj -= 1
+                else:  # crypto whales
+                    if net <= -2e7:
+                        adj += 2
+                    elif net <= -5e6:
+                        adj += 1
+                    elif net >= 2e7:
+                        adj -= 2
+                    elif net >= 5e6:
+                        adj -= 1
+            except Exception:
+                pass
+
+            if adj < 0:
+                adj = 0.0
+            # Recompute bucket
+            if adj >= thr["red_cutoff"]:
+                bucket = "red"
+            elif adj >= thr["yellow_cutoff"]:
+                bucket = "yellow"
+            else:
+                bucket = "green"
+            assessment["risk"]["score"] = float(adj)
+            assessment["risk"]["bucket"] = bucket
+        except Exception:
+            logger.exception("Risk blending adjustments failed")
+
+        logger.info(f"Insider/whale signals for {symbol}: {assessment.get('insider_signals', 'NONE')}")
 
         return assessment
     except Exception:
