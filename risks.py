@@ -514,7 +514,7 @@ def analyze_asset(symbol: str, period: str = "1mo", holder_concentration: float 
                 "top_contribs_up": [],
                 "horizon": 5,
             }
-        # Insider signals for stocks only
+        # Insider signals: stocks => filings; crypto => whale trades
         if "/" not in symbol:
             try:
                 from fetchers import fetch_insider_transactions
@@ -527,7 +527,17 @@ def analyze_asset(symbol: str, period: str = "1mo", holder_concentration: float 
                 logger.exception("Insider signals fetch failed")
                 assessment["insider_signals"] = {"error": "Failed to fetch insider signals"}
         else:
-            assessment["insider_signals"] = {"note": "Insider signals not applicable for crypto"}
+            try:
+                from fetchers import fetch_crypto_whale_signals
+                threshold = float(os.environ.get("FEATHER_WHALE_USD", "100000"))
+                whale = fetch_crypto_whale_signals(symbol, large_usd=threshold)
+                if whale:
+                    assessment["insider_signals"] = whale
+                else:
+                    assessment["insider_signals"] = {"note": "No large whale trades observed"}
+            except Exception:
+                logger.exception("Crypto whale signals fetch failed")
+                assessment["insider_signals"] = {"error": "Failed to fetch whale signals"}
         logger.info(f"Insider signals for {symbol}: {assessment.get('insider_signals', 'NONE')}")
 
         return assessment

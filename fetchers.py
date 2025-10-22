@@ -871,6 +871,39 @@ def fetch_insider_transactions(symbol: str, months: int = 3) -> Optional[Dict]:
         logger.warning(f"Alpha Vantage insider fetch failed for {symbol}: {e}. Using dummy data.")
         return {'buys': 5, 'sells': 3, 'net_value': 150000.0, 'transactions': []}
 
+def fetch_crypto_whale_signals(symbol_pair: str, large_usd: float = 100000.0, limit: int = 1000) -> Optional[Dict]:
+    try:
+        ex = ccxt.binance()
+        ex.load_markets()
+        sym = symbol_pair.upper()
+        if sym not in ex.symbols:
+            base = symbol_pair.split('/', 1)[0].upper()
+            sym = f"{base}/USDT"
+            if sym not in ex.symbols:
+                return None
+        trades = ex.fetch_trades(sym, limit=limit)
+        if not trades:
+            return None
+        buys = 0
+        sells = 0
+        net = 0.0
+        for t in trades:
+            price = float(t.get('price') or 0.0)
+            amount = float(t.get('amount') or 0.0)
+            cost = price * amount
+            side = t.get('side')
+            if cost >= large_usd:
+                if side == 'buy':
+                    buys += 1
+                    net += cost
+                elif side == 'sell':
+                    sells += 1
+                    net -= cost
+        return {'buys': buys, 'sells': sells, 'net_value': float(net), 'pair': sym, 'sample_size': int(len(trades))}
+    except Exception:
+        logger.exception("fetch_crypto_whale_signals failed for %s", symbol_pair)
+        return None
+
 def _news_cache_path(query: str, days: int) -> str:
     key = f"{query}_{days}"
     h = hashlib.md5(key.encode("utf-8")).hexdigest()
