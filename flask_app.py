@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 try:
     from flask_cors import CORS
 except Exception:
@@ -52,6 +52,18 @@ def index():
     if os.path.exists(docs_index):
         return send_from_directory(os.path.join(app.root_path, 'docs'), 'index.html')
     return ('Template index.html not found', 500)
+
+@app.route('/config.js')
+def serve_config_js():
+    try:
+        docs_dir = os.path.join(app.root_path, 'docs')
+        cfg_path = os.path.join(docs_dir, 'config.js')
+        if os.path.exists(cfg_path):
+            return send_from_directory(docs_dir, 'config.js')
+        # Default empty config so frontend falls back to window.location.origin
+        return Response("window.API_BASE='';\n", mimetype='application/javascript')
+    except Exception:
+        return Response("window.API_BASE='';\n", mimetype='application/javascript')
 
 @app.route('/analyze', methods=['OPTIONS', 'POST'])
 def analyze():
