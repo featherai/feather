@@ -1,4 +1,4 @@
-<script src="config.js?v=6"></script>
+<script src="/config.js"></script>
 <!doctype html>
 <html lang="en">
 <head>
@@ -124,6 +124,16 @@
     .articles a:hover { text-decoration:underline; }
     .events { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
     .event-badge { background:#0e1a0e; border:1px solid rgba(0,255,136,0.15); color:#9affcc; padding:3px 8px; border-radius:999px; font-size:12px; }
+    .grid-2 { display:grid; grid-template-columns:1fr; gap:16px; margin-top:12px; }
+    @media (min-width: 900px) { .grid-2 { grid-template-columns: 1.2fr 1fr; } }
+    .gauge { width:100%; height:140px; background:#111; border:1px solid rgba(255,255,255,0.06); border-radius:12px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+    .gauge .ring { width:120px; height:120px; border-radius:50%; background:conic-gradient(#00e676 0%, #1a1a1a 0); display:flex; align-items:center; justify-content:center; box-shadow:inset 0 0 0 10px #0b0b0b; }
+    .gauge .center { width:84px; height:84px; border-radius:50%; background:#0b0b0b; display:flex; align-items:center; justify-content:center; color:#ddd; font-weight:700; font-size:16px; }
+    .callouts { display:flex; flex-direction:column; gap:8px; }
+    .callout { background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 12px; color:#ddd; font-size:14px; }
+    .actions { display:flex; gap:10px; margin-top:8px; }
+    .btn-secondary { background:#0f0f0f; color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px 14px; font-weight:600; cursor:pointer; }
+    .btn-secondary:hover { background:#151515; }
     .footer { margin-top:auto; width:100%; max-width:900px; color:#aaa; font-size:13px; padding:16px 0; text-align:center; border-top:1px solid rgba(255,255,255,0.06); }
     .footer a { color:#bbb; text-decoration:none; margin:0 10px; }
     .footer a:hover { color:#fff; text-decoration:underline; }
@@ -131,7 +141,7 @@
 </head>
 <body>
   <div class="brand">
-    <img class="brand-logo" src="img/feato.jpg" alt="Feato" />
+    <img class="brand-logo" src="/static/img/feato.jpg" alt="Feato" />
     <h1>Feather AI</h1>
   </div>
   <p>Analyze any crypto or stock in real-time for drawdown and upside risk — powered by Feather’s intelligence engine.</p>
@@ -173,9 +183,9 @@
 
   <script src="config.js"></script>
   <script>
-    // Set your backend URL here (e.g., Cloudflare Tunnel or Deta Space URL)
-    // For local dev, this can be 'http://localhost:5000'
-    const API_BASE = (window.API_BASE || '').trim() || 'http://127.0.0.1:5000';
+    // Set your backend URL via docs/config.js if needed. Default to current origin.
+    const ORIGIN = (window.location && window.location.origin) || '';
+    const API_BASE = (window.API_BASE || '').trim() || (ORIGIN.startsWith('http') ? ORIGIN : 'http://127.0.0.1:5000');
     const api = (p) => `${API_BASE}${p}`;
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -257,42 +267,66 @@
           const source = ins.source ? `<span class="chip">src: ${ins.source}</span>` : '';
           insiderHTML = `<div class="stat-card"><div class="stat-title">${icon} Insider/Whale</div><div class="chips"><span class="chip">${ins.buys} buys</span><span class="chip">${ins.sells} sells</span><span class="chip">Net: ${net}</span>${ins.source==='dummy' ? '<span class="chip">demo</span>' : ''}${source}</div></div>`;
         }
+        const stance = (pu - pd) > 0.1 ? 'Bullish tilt' : (pd - pu) > 0.1 ? 'Caution' : 'Neutral';
+        const stanceNote = ns > 0.2 ? 'Supportive news flow' : (ns < -0.2 ? 'Negative news headwinds' : 'Mixed news');
+        const gaugePct = Math.round(pu*100);
+        const gaugeRing = `conic-gradient(#00e676 0% ${gaugePct}%, #1a1a1a ${gaugePct}% 100%)`;
         const summaryHTML = `
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-title">🔻 Prob Drawdown</div>
-              <div class="stat-value">${(pd*100).toFixed(1)}%</div>
-              <div class="bar"><div class="bar-fill" style="width:${(pd*100).toFixed(0)}%"></div></div>
+          <div class="grid-2">
+            <div>
+              <div class="gauge" aria-label="Up Probability Gauge">
+                <div class="ring" style="background:${gaugeRing}">
+                  <div class="center">Up ${gaugePct}%</div>
+                </div>
+              </div>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-title">🔻 Prob Drawdown</div>
+                  <div class="stat-value">${(pd*100).toFixed(1)}%</div>
+                  <div class="bar"><div class="bar-fill" style="width:${(pd*100).toFixed(0)}%"></div></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-title">🔺 Prob Up</div>
+                  <div class="stat-value">${(pu*100).toFixed(1)}%</div>
+                  <div class="bar"><div class="bar-fill" style="width:${(pu*100).toFixed(0)}%"></div></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-title">📰 News Sentiment</div>
+                  <div class="stat-value">${ns.toFixed(2)} · ${nsLabel}</div>
+                  <div style="margin-top:6px; color:#aaa; font-size:12px;">${Number(data.article_count||0)} articles</div>
+                </div>
+              </div>
+              <div class="callouts" style="margin-top:12px;">
+                <div class="callout">⚡ Stance: <b>${stance}</b> — ${stanceNote}</div>
+                ${data.insider_signals && typeof data.insider_signals.net_value === 'number' ? `<div class="callout">📈 Insider/Whale: <b>${data.insider_signals.net_value >= 0 ? 'Net buying' : 'Net selling'}</b></div>` : ''}
+              </div>
+              <div class="actions">
+                <button class="btn-secondary" onclick="copySummary()">Copy Summary</button>
+              </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-title">🔺 Prob Up</div>
-              <div class="stat-value">${(pu*100).toFixed(1)}%</div>
-              <div class="bar"><div class="bar-fill" style="width:${(pu*100).toFixed(0)}%"></div></div>
+            <div>
+              ${insiderHTML}
+              <div class="stat-card" style="margin-top:12px;">
+                <div class="stat-title">🏷️ Topics</div>
+                <div class="chips">${topicsList.length ? topicsList.map(t=>`<span class=\"chip\">${t}</span>`).join('') : '<span class=\"chip\">None</span>'}</div>
+              </div>
+              <div class="stat-card" style="margin-top:12px;">
+                <div class="stat-title">📌 Events</div>
+                <div class="events">${eventsList.length ? eventsList.map(([k,v])=>`<span class=\"event-badge\">${k}:${v}</span>`).join('') : '<span class=\"chip\">None</span>'}</div>
+              </div>
+              <div class="stat-card articles" style="margin-top:12px;">
+                <div class="stat-title">📚 Top Articles</div>
+                <ul style="margin-top:6px; padding-left:18px;">${articles.map(a=>`<li><a href=\"${(a.url||'#')}\" target=\"_blank\" rel=\"noopener\">${a.title||'Article'}</a></li>`).join('')}</ul>
+              </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-title">📰 News Sentiment</div>
-              <div class="stat-value">${ns.toFixed(2)} · ${nsLabel}</div>
-              <div style="margin-top:6px; color:#aaa; font-size:12px;">${Number(data.article_count||0)} articles</div>
-            </div>
-          </div>
-          ${insiderHTML}
-          <div class="stat-card" style="margin-top:12px;">
-            <div class="stat-title">🏷️ Topics</div>
-            <div class="chips">${topicsList.length ? topicsList.map(t=>`<span class="chip">${t}</span>`).join('') : '<span class="chip">None</span>'}</div>
-          </div>
-          <div class="stat-card" style="margin-top:12px;">
-            <div class="stat-title">📌 Events</div>
-            <div class="events">${eventsList.length ? eventsList.map(([k,v])=>`<span class="event-badge">${k}:${v}</span>`).join('') : '<span class="chip">None</span>'}</div>
-          </div>
-          <div class="stat-card articles" style="margin-top:12px;">
-            <div class="stat-title">📚 Top Articles</div>
-            <ul style="margin-top:6px; padding-left:18px;">${articles.map(a=>`<li><a href="${(a.url||'#')}" target="_blank" rel="noopener">${a.title||'Article'}</a></li>`).join('')}</ul>
           </div>
         `;
 
         title.innerText = `${displayName} — ${type.charAt(0).toUpperCase() + type.slice(1)} Analysis`;
         risk.innerText = `${riskLevel} (Score: ${data.risk_score})`;
-        risk.style.color = color;
+        risk.style.color = '#000';
+        risk.style.background = riskLevel === 'GREEN' ? 'linear-gradient(90deg,#7CFFCB,#74F2CE)' : (riskLevel === 'YELLOW' ? 'linear-gradient(90deg,#FFE29F,#FFA99F)' : 'linear-gradient(90deg,#FF9A9E,#FAD0C4)');
+        risk.style.border = 'none';
         summary.innerHTML = summaryHTML;
 
         const fbox = document.getElementById('feedbackBox');
@@ -313,6 +347,16 @@
         alert("Analysis failed: " + error.message + " (check API_BASE or try again)");
         resultDiv.style.display = "none";
       });
+    }
+
+    function copySummary() {
+      try {
+        const el = document.getElementById('summary');
+        const text = el ? el.innerText : '';
+        navigator.clipboard.writeText(text).then(()=>{
+          // no-op
+        });
+      } catch (e) { /* ignore */ }
     }
 
     function submitFeedback() {

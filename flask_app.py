@@ -42,9 +42,23 @@ def add_cors_headers(response):
         pass
     return response
 
+@app.route('/app')
+def app_page():
+    base = os.path.join(app.root_path, 'templates')
+    idx = os.path.join(base, 'index.html')
+    if os.path.exists(idx):
+        return render_template('index.html')
+    docs_index = os.path.join(app.root_path, 'docs', 'index.html')
+    if os.path.exists(docs_index):
+        return send_from_directory(os.path.join(app.root_path, 'docs'), 'index.html')
+    return ('Analyzer page not found', 500)
+
 @app.route('/')
 def index():
     base = os.path.join(app.root_path, 'templates')
+    web = os.path.join(base, 'web.html')
+    if os.path.exists(web):
+        return render_template('web.html')
     idx = os.path.join(base, 'index.html')
     if os.path.exists(idx):
         return render_template('index.html')
@@ -161,6 +175,10 @@ def analyze():
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
 
 @app.route('/news_health', methods=['GET'])
 def news_health():

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Feather — Real-time Risk Intelligence</title>
+  <meta name="description" content="Feather AI — Real-time multi-asset risk detection for crypto and stocks. Get instant risk scores by entering a ticker (e.g., BTC, AAPL) or a crypto address if the ticker lookup fails. Fast, neutral, and auditable." />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html,body { height:100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: #000;
+      color: #fff;
+      line-height:1.45;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding: 32px;
+    }
+    .container { max-width:1100px; margin:0 auto; padding: 24px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit; }
+    .brand svg { width:36px; height:36px; flex:0 0 36px; }
+    nav { display:flex; gap:20px; align-items:center; }
+    nav a { color: #eee; text-decoration:none; font-weight:600; opacity:0.9; }
+    nav a:hover { opacity:1; }
+    .hero { display:grid; grid-template-columns: 1fr 380px; gap:32px; align-items:center; margin:48px 0; }
+    .hero-left h1 { font-size: clamp(28px, 5vw, 56px); line-height: 1.02; margin-bottom: 14px; letter-spacing:-0.5px; }
+    .hero-left p { color:#ddd; font-size:16px; margin-bottom:20px; max-width:700px; }
+    .cta { display:flex; gap:12px; }
+    .btn {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 18px;
+      border-radius:10px;
+      font-weight:700;
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,0.06);
+      text-decoration:none;
+      color:inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    }
+    .btn.primary { background: #fff; color:#000; }
+    .hero-right {
+      background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;
+      padding:18px;
+      border:1px solid rgba(255,255,255,0.04);
+    }
+    .hero-right .small { color:#bbb; font-size:14px; margin-bottom:12px; }
+    .badge {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      background: rgba(255,255,255,0.03);
+      border-radius:999px;
+      font-weight:700;
+      color:#fff;
+      font-size:13px;
+    }
+    .footer {
+      margin-top:48px;
+      border-top:1px solid rgba(255,255,255,0.03);
+      padding-top:18px;
+      color:#aaa;
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    @media (max-width:880px){
+      .hero { grid-template-columns: 1fr; }
+      header { flex-direction:column; align-items:flex-start; gap:12px; }
+    }
+    .btn:focus, a:focus, button:focus { outline: 3px solid rgba(255,255,255,0.08); outline-offset: 3px; }
+    .note { color:#bcbcbc; font-size:13px; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <header>
+      <a class="brand" href="#" aria-label="Feather AI homepage">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 21c2-4 6-9 14-11-1 3-6 9-14 11z" fill="#fff" />
+          <path d="M20.5 3.5c-2.5 1.4-6 3.7-9.5 8 .6.2 1.3.2 1.8.1 4-1 6.7-4 7.6-7.4.2-.8-.3-1.6-1-1.7z" fill="#fff" opacity="0.96"/>
+        </svg>
+        <span style="font-size:18px; font-weight:800;">Feather</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="hero-left">
+        <h1 id="hero-heading">Real-time multi-asset<br/>risk detection & intelligence</h1>
+        <p>Feather delivers instant risk scores for crypto and stocks — no signup required. Fast, neutral, and designed for traders and institutions.</p>
+        <div class="cta" role="region" aria-label="Primary calls to action">
+          <a class="btn primary" href="#contact">Get started — Free</a>
+          <a class="btn" href="#about">Learn more</a>
+        </div>
+        <div style="margin-top:18px;">
+          <span class="badge">⚡ Instant results</span>
+          <span style="width:12px;display:inline-block;"></span>
+          <span class="badge">🔒 Neutral & auditable</span>
+        </div>
+      </div>
+
+      <aside class="hero-right">
+        <div class="small">Example: One-line analysis</div>
+        <div style="font-weight:800; margin-bottom:8px;">BTC / Bitcoin — Risk: <span style="color:#ffcc00">Yellow</span></div>
+        <div class="muted">Summary</div>
+        <div style="margin-top:8px; color:#eaeaea;">Unusual token inflows to multiple exchange wallets and sudden liquidity shift detected. Recommend caution.</div>
+        <div class="note">Source links: Etherscan · CoinGecko · Trading news</div>
+      </aside>
+    </section>
+
+    <section id="features" style="margin-top:6px;">
+      <h2 style="font-size:20px; margin-bottom:12px;">What Feather does</h2>
+      <div style="display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); margin-bottom:18px;">
+        <div style="background:rgba(255,255,255,0.02); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.03);">
+          <strong>Crypto</strong>
+          <div class="muted" style="margin-top:8px;">Rug-pull detection, liquidity locks, token concentration, on-chain alerts.</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.03);">
+          <strong>Stocks</strong>
+          <div class="muted" style="margin-top:8px;">Insider trading signals, options activity, volatility spikes.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" style="margin-top:36px;">
+      <h2 style="margin-bottom:12px;">About Feather</h2>
+      <p class="muted">Feather is built for speed, neutrality, and auditable intelligence. Our core mission is to provide instant, explainable risk signals so users and institutions can act confidently.</p>
+    </section>
+
+    <section id="contact" style="margin-top:28px;">
+      <h2 style="margin-bottom:10px;">Contact & Pilot Programs</h2>
+      <p class="muted">Interested in a pilot or enterprise integration? Reach out and we'll schedule a demo.</p>
+      <form onsubmit="handleContact(event)" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+        <input id="email" type="email" placeholder="Your email" required style="padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:#fff; min-width:250px;" />
+        <input id="company" type="text" placeholder="Company (optional)" style="padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:#fff; min-width:180px;" />
+        <button class="btn" type="submit">Request demo</button>
+      </form>
+    </section>
+
+    <footer class="footer">
+      <div>© <strong>Feather</strong> — Real-time risk intelligence</div>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <a href="#" style="color:#bbb; text-decoration:none;">Terms</a>
+        <a href="#" style="color:#bbb; text-decoration:none;">Privacy</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    function handleContact(e){
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const company = document.getElementById('company').value;
+      alert('Thanks — we will contact ' + email + (company ? ' from ' + company : '') + ' within 48 hours for a demo.');
+      e.target.reset();
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') document.body.classList.add('user-is-tabbing');
+    });
+  </script>
+</body>
+</html>
