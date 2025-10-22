@@ -229,8 +229,12 @@
         if (data.insider_signals) {
             const ins = data.insider_signals;
             if (ins.buys !== undefined) {
-                const net = ins.net_value ? (ins.net_value > 0 ? "+" : "") + ins.net_value.toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : "N/A";
-                insiderText = `Insider Signals (3m): ${ins.buys} buys, ${ins.sells} sells, Net: ${net}. `;
+                const net = (typeof ins.net_value === 'number') ? ((ins.net_value > 0 ? "+" : "") + ins.net_value.toLocaleString('en-US', {style: 'currency', currency: 'USD'})) : "N/A";
+                const isCrypto = (type === 'crypto') || (data.asset && data.asset.includes('/'));
+                const label = isCrypto ? 'Whale Signals (recent)' : 'Insider Signals (3m)';
+                const source = ins.source ? ` [${ins.source}]` : '';
+                const demo = ins.source === 'dummy' ? ' (demo)' : '';
+                insiderText = `${label}: ${ins.buys} buys, ${ins.sells} sells, Net: ${net}${demo}${source}. `;
             } else if (ins.note) {
                 insiderText = `${ins.note}. `;
             } else if (ins.error) {

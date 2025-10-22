@@ -839,37 +839,68 @@ def news_health_check(query: str, max_articles: int = 5, timeout_sec: int = 8) -
         out["listing_scrape"] = {"ok": False, "count": 0, "error": str(e)}
 
 def fetch_insider_transactions(symbol: str, months: int = 3) -> Optional[Dict]:
-    """
-    Fetch recent insider transactions using Alpha Vantage API (free tier).
-    """
-    api_key = os.getenv("ALPHAVANTAGE_API_KEY")
-    if not api_key:
-        return {'buys': 5, 'sells': 3, 'net_value': 150000.0, 'transactions': []}
+    api_key_av = os.getenv("ALPHAVANTAGE_API_KEY")
+    api_key_fh = os.getenv("FINNHUB_API_KEY")
 
-    try:
-        url = f"https://www.alphavantage.co/query?function=INSIDER_TRANSACTIONS&symbol={symbol.upper()}&apikey={api_key}"
-        resp = requests.get(url, timeout=15, headers=HEADERS)
-        resp.raise_for_status()
-        data = resp.json()
+    # 1) Alpha Vantage
+    if api_key_av:
+        try:
+            url = f"https://www.alphavantage.co/query?function=INSIDER_TRANSACTIONS&symbol={symbol.upper()}&apikey={api_key_av}"
+            resp = requests.get(url, timeout=15, headers=HEADERS)
+            resp.raise_for_status()
+            data = resp.json()
+            if "transactions" in data:
+                transactions = data["transactions"]
+                from datetime import datetime, timedelta
+                cutoff = datetime.now() - timedelta(days=months * 30)
+                recent = [t for t in transactions if datetime.fromisoformat(t["transaction_date"]) > cutoff]
+                if recent:
+                    buys = sum(1 for t in recent if t.get('acquisition_or_disposition') == 'A')
+                    sells = sum(1 for t in recent if t.get('acquisition_or_disposition') == 'D')
+                    net_value = sum(
+                        (float(t.get('transaction_price') or 0.0) * int(t.get('transaction_shares') or 0))
+                        if t.get('acquisition_or_disposition') == 'A' else
+                        -(float(t.get('transaction_price') or 0.0) * int(t.get('transaction_shares') or 0))
+                        for t in recent
+                    )
+                    return {'buys': buys, 'sells': sells, 'net_value': net_value, 'transactions': recent, 'source': 'alphavantage'}
+        except Exception as e:
+            logger.warning(f"Alpha Vantage insider fetch failed for {symbol}: {e}")
 
-        if "transactions" not in data:
-            raise ValueError("No transactions data")
+    # 2) Finnhub fallback
+    if api_key_fh:
+        try:
+            url = f"https://finnhub.io/api/v1/stock/insider-transactions?symbol={symbol.upper()}&token={api_key_fh}"
+            resp = requests.get(url, timeout=15, headers=HEADERS)
+            resp.raise_for_status()
+            data = resp.json()
+            from datetime import datetime, timedelta
+            cutoff = datetime.now() - timedelta(days=months * 30)
+            arr = data.get("data", [])
+            def _parse_date(s: str):
+                try:
+                    return datetime.fromisoformat(s)
+                except Exception:
+                    from datetime import datetime as _dt
+                    try:
+                        return _dt.strptime(s, "%Y-%m-%d")
+                    except Exception:
+                        return cutoff  # drop unknown
+            recent = [t for t in arr if _parse_date(t.get("transactionDate", "1970-01-01")) > cutoff]
+            if recent:
+                buys = sum(1 for t in recent if float(t.get('change') or 0) > 0)
+                sells = sum(1 for t in recent if float(t.get('change') or 0) < 0)
+                net_value = 0.0
+                for t in recent:
+                    ch = float(t.get('change') or 0.0)
+                    px = float(t.get('transactionPrice') or 0.0)
+                    net_value += ch * px
+                return {'buys': buys, 'sells': sells, 'net_value': net_value, 'transactions': recent, 'source': 'finnhub'}
+        except Exception as e:
+            logger.warning(f"Finnhub insider fetch failed for {symbol}: {e}")
 
-        transactions = data["transactions"]
-        from datetime import datetime, timedelta
-        cutoff = datetime.now() - timedelta(days=months * 30)
-        recent = [t for t in transactions if datetime.fromisoformat(t["transaction_date"]) > cutoff]
-
-        if recent:
-            buys = sum(1 for t in recent if t['acquisition_or_disposition'] == 'A')
-            sells = sum(1 for t in recent if t['acquisition_or_disposition'] == 'D')
-            net_value = sum(float(t['transaction_price']) * int(t['transaction_shares']) if t['acquisition_or_disposition'] == 'A' else -float(t['transaction_price']) * int(t['transaction_shares']) for t in recent)
-            return {'buys': buys, 'sells': sells, 'net_value': net_value, 'transactions': recent}
-        else:
-            return {'buys': 0, 'sells': 0, 'net_value': 0.0, 'transactions': []}
-    except Exception as e:
-        logger.warning(f"Alpha Vantage insider fetch failed for {symbol}: {e}. Using dummy data.")
-        return {'buys': 5, 'sells': 3, 'net_value': 150000.0, 'transactions': []}
+    # 3) Dummy fallback
+    return {'buys': 5, 'sells': 3, 'net_value': 150000.0, 'transactions': [], 'source': 'dummy'}
 
 def fetch_crypto_whale_signals(symbol_pair: str, large_usd: float = 100000.0, limit: int = 1000) -> Optional[Dict]:
     try:
@@ -899,7 +930,7 @@ def fetch_crypto_whale_signals(symbol_pair: str, large_usd: float = 100000.0, li
                 elif side == 'sell':
                     sells += 1
                     net -= cost
-        return {'buys': buys, 'sells': sells, 'net_value': float(net), 'pair': sym, 'sample_size': int(len(trades))}
+        return {'buys': buys, 'sells': sells, 'net_value': float(net), 'pair': sym, 'sample_size': int(len(trades)), 'source': 'whales-binance'}
     except Exception:
         logger.exception("fetch_crypto_whale_signals failed for %s", symbol_pair)
         return None
