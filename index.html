@@ -1,22 +1,17 @@
+<script src="config.js?v=6"></script>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Feather AI — Real-time Financial Risk Intelligence</title>
+   <link rel="icon" href="https://featherai.github.io/feather/favicon.ico" />
   <meta name="description" content="Feather AI — Real-time crypto, stock risk intelligence powered by advanced AI." />
-  <meta name="keywords" content="Feather AI, finance, crypto, stocks, risk analysis, AI trading." />
-  <meta name="author" content="Feather AI" />
-
-  <!-- Favicon -->
-  <link rel="icon" href="https://featherai.github.io/feather/favicon.ico" />
-
-  <!-- Open Graph / Twitter -->
   <meta property="og:title" content="Feather AI — Financial Risk Intelligence" />
-  <meta property="og:description" content="Instant AI-powered analysis for crypto and stocks." />
+  <meta property="og:description" content="Instant AI-powered analysis for crypto, stocks, and more." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://featherai.github.io/feather/preview.png" />
   <meta property="og:url" content="https://featherai.github.io/feather/" />
+  <meta property="og:image" content="https://featherai.github.io/feather/preview.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -31,7 +26,6 @@
       justify-content:flex-start;
       min-height:100vh;
     }
-
     h1 {
       font-size:clamp(28px,5vw,48px);
       margin-bottom:16px;
@@ -116,29 +110,39 @@
       font-size:13px;
       margin-top:8px;
     }
+    .stats-grid { display:grid; grid-template-columns:1fr; gap:12px; margin-top:12px; }
+    @media (min-width: 640px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+    .stat-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px; }
+    .stat-title { color:#aaa; font-size:12px; margin-bottom:6px; }
+    .stat-value { font-size:18px; font-weight:700; }
+    .bar { width:100%; height:8px; background:#1a1a1a; border-radius:999px; overflow:hidden; margin-top:8px; }
+    .bar-fill { height:100%; background:linear-gradient(90deg,#ff4d4d,#ffaa00,#00e676); width:0%; transition:width .3s ease; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .chip { background:#111; border:1px solid rgba(255,255,255,0.08); color:#ddd; padding:4px 8px; border-radius:999px; font-size:12px; }
+    .articles { margin-top:12px; }
+    .articles a { color:#8ab4ff; text-decoration:none; }
+    .articles a:hover { text-decoration:underline; }
+    .events { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .event-badge { background:#0e1a0e; border:1px solid rgba(0,255,136,0.15); color:#9affcc; padding:3px 8px; border-radius:999px; font-size:12px; }
     .footer { margin-top:auto; width:100%; max-width:900px; color:#aaa; font-size:13px; padding:16px 0; text-align:center; border-top:1px solid rgba(255,255,255,0.06); }
     .footer a { color:#bbb; text-decoration:none; margin:0 10px; }
     .footer a:hover { color:#fff; text-decoration:underline; }
   </style>
-  <script>if (window.LightweightCharts) delete window.LightweightCharts;</script>
 </head>
 <body>
   <div class="brand">
-    <img class="brand-logo" src="https://featherai.github.io/feather/feato.jpg" alt="Feather AI logo" />
+    <img class="brand-logo" src="img/feato.jpg" alt="Feato" />
     <h1>Feather AI</h1>
   </div>
   <p>Analyze any crypto or stock in real-time for drawdown and upside risk — powered by Feather’s intelligence engine.</p>
 
   <div class="analyzer">
-    <select id="assetType" onchange="toggleContractField()">
+    <select id="assetType">
       <option value="crypto">Crypto</option>
       <option value="stock">Stock</option>
     </select>
 
-    <input id="assetInput" type="text" placeholder="Enter symbol or ticker (e.g. BTC or AAPL)" />
-
-    <!-- Contract address bar (only visible for crypto) -->
-    <input id="contractInput" type="text" placeholder="Enter contract address (optional)" style="display:none;" />
+    <input id="assetInput" type="text" placeholder="Enter crypto address or stock ticker (e.g. BTC or AAPL)" />
 
     <button onclick="analyze()">⚡ Analyze</button>
   </div>
@@ -160,32 +164,28 @@
   <div id="chart" style="margin-top:24px; width:100%; max-width:600px; height:400px;"></div>
 
   <div class="footer">
-    <span> <span id="year"></span> Feather AI</span>
+    <span>© <span id="year"></span> Feather AI</span>
     ·
-    <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+     <a href="https://featherai.github.io/feather/privacy.html" rel="noopener">Privacy Policy</a>
     ·
-    <a href="/terms" target="_blank" rel="noopener">Terms of Use</a>
+    <a href="https://featherai.github.io/feather/terms.html" rel="noopener">Terms of Use</a>
   </div>
 
   <script src="config.js"></script>
   <script>
+    // Set your backend URL here (e.g., Cloudflare Tunnel or Deta Space URL)
+    // For local dev, this can be 'http://localhost:5000'
     const API_BASE = (window.API_BASE || '').trim() || 'http://127.0.0.1:5000';
     const api = (p) => `${API_BASE}${p}`;
+
     document.addEventListener('DOMContentLoaded', function() {
       var y = document.getElementById('year');
       if (y) y.textContent = new Date().getFullYear();
-      // Ensure proper initial visibility of the contract field
-      try { toggleContractField(); } catch (e) {}
     });
-    function toggleContractField() {
-      const type = document.getElementById('assetType').value;
-      const contractInput = document.getElementById('contractInput');
-      if (contractInput) contractInput.style.display = (type === 'crypto') ? 'block' : 'none';
-    }
+
     function analyze() {
       const type = document.getElementById('assetType').value;
       const asset = document.getElementById('assetInput').value.trim();
-      const contract = (document.getElementById('contractInput')?.value || '').trim();
       const resultDiv = document.getElementById('result');
       const title = document.getElementById('assetTitle');
       const risk = document.getElementById('riskScore');
@@ -202,13 +202,10 @@
       document.getElementById('feedbackBox').style.display = 'none';
       document.getElementById('feedbackStatus').innerText = '';
 
-      // Call Flask API with timeout
-      const payload = { type: type, asset: asset };
-      if (type === 'crypto' && contract) payload.contract = contract;
       fetch(api('/analyze'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ type: type, asset: asset })
       })
       .then(response => {
         if (!response.ok) {
@@ -228,6 +225,7 @@
         let displayName = data.coin_name || data.asset.split('/')[0];
         let topicsText = data.topics.map((t, i) => `Topic ${i+1}: ${t}`).join('; ');
         let articlesText = data.top_articles.slice(0, 3).map(a => `- ${a.title}`).join('\n');
+
         let insiderText = "";
         if (data.insider_signals) {
             const ins = data.insider_signals;
@@ -244,13 +242,59 @@
                 insiderText = `Insider: ${ins.error}. `;
             }
         }
-        const summaryText = `${displayName}: Prob Drawdown ${data.prob_drawdown.toFixed(3)}, Prob Up ${data.prob_up.toFixed(3)}. News Sentiment: ${data.news_sentiment.toFixed(2)} (${data.article_count} articles).\n\n${insiderText}Topics: ${topicsText}\n\nEvents: ${Object.entries(data.events).filter(([k,v])=>v>0).map(([k,v])=>`${k}:${v}`).join(', ') || 'None'}\n\nTop Articles:\n${articlesText}`;
+        const pd = Math.max(0, Math.min(1, Number(data.prob_drawdown||0)));
+        const pu = Math.max(0, Math.min(1, Number(data.prob_up||0)));
+        const ns = Number(data.news_sentiment||0);
+        const nsLabel = ns > 0.2 ? 'Positive' : (ns < -0.2 ? 'Negative' : 'Neutral');
+        const eventsList = Object.entries(data.events||{}).filter(([k,v])=>Number(v)>0);
+        const topicsList = Array.isArray(data.topics) ? data.topics : [];
+        const articles = (data.top_articles||[]).slice(0,5);
+        let insiderHTML = insiderText;
+        if (data.insider_signals && data.insider_signals.buys !== undefined) {
+          const ins = data.insider_signals;
+          const net = (typeof ins.net_value === 'number') ? ((ins.net_value > 0 ? '+' : '') + ins.net_value.toLocaleString('en-US', {style:'currency', currency:'USD'})) : 'N/A';
+          const icon = ((type === 'crypto') || (data.asset && data.asset.includes('/'))) ? '🐋' : '🧾';
+          const source = ins.source ? `<span class="chip">src: ${ins.source}</span>` : '';
+          insiderHTML = `<div class="stat-card"><div class="stat-title">${icon} Insider/Whale</div><div class="chips"><span class="chip">${ins.buys} buys</span><span class="chip">${ins.sells} sells</span><span class="chip">Net: ${net}</span>${ins.source==='dummy' ? '<span class="chip">demo</span>' : ''}${source}</div></div>`;
+        }
+        const summaryHTML = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-title">🔻 Prob Drawdown</div>
+              <div class="stat-value">${(pd*100).toFixed(1)}%</div>
+              <div class="bar"><div class="bar-fill" style="width:${(pd*100).toFixed(0)}%"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">🔺 Prob Up</div>
+              <div class="stat-value">${(pu*100).toFixed(1)}%</div>
+              <div class="bar"><div class="bar-fill" style="width:${(pu*100).toFixed(0)}%"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">📰 News Sentiment</div>
+              <div class="stat-value">${ns.toFixed(2)} · ${nsLabel}</div>
+              <div style="margin-top:6px; color:#aaa; font-size:12px;">${Number(data.article_count||0)} articles</div>
+            </div>
+          </div>
+          ${insiderHTML}
+          <div class="stat-card" style="margin-top:12px;">
+            <div class="stat-title">🏷️ Topics</div>
+            <div class="chips">${topicsList.length ? topicsList.map(t=>`<span class="chip">${t}</span>`).join('') : '<span class="chip">None</span>'}</div>
+          </div>
+          <div class="stat-card" style="margin-top:12px;">
+            <div class="stat-title">📌 Events</div>
+            <div class="events">${eventsList.length ? eventsList.map(([k,v])=>`<span class="event-badge">${k}:${v}</span>`).join('') : '<span class="chip">None</span>'}</div>
+          </div>
+          <div class="stat-card articles" style="margin-top:12px;">
+            <div class="stat-title">📚 Top Articles</div>
+            <ul style="margin-top:6px; padding-left:18px;">${articles.map(a=>`<li><a href="${(a.url||'#')}" target="_blank" rel="noopener">${a.title||'Article'}</a></li>`).join('')}</ul>
+          </div>
+        `;
 
         title.innerText = `${displayName} — ${type.charAt(0).toUpperCase() + type.slice(1)} Analysis`;
         risk.innerText = `${riskLevel} (Score: ${data.risk_score})`;
         risk.style.color = color;
-        summary.innerText = summaryText;
-        // Reveal feedback UI
+        summary.innerHTML = summaryHTML;
+
         const fbox = document.getElementById('feedbackBox');
         fbox.style.display = 'block';
         fbox.dataset.payload = JSON.stringify({
@@ -263,11 +307,10 @@
           news_sentiment: data.news_sentiment
         });
 
-        // Load chart with price data
         loadChart2(displayName, type, data.price_data);
       })
       .catch(error => {
-        alert("Analysis failed: " + error.message + " (try again or use simple assets)");
+        alert("Analysis failed: " + error.message + " (check API_BASE or try again)");
         resultDiv.style.display = "none";
       });
     }
@@ -298,26 +341,9 @@
 
     function loadChart2(asset, type, priceData) {
       const chartContainer = document.getElementById('chart');
-      chartContainer.innerHTML = ''; // Clear previous
-      // Map to TradingView ticker
+      chartContainer.innerHTML = '';
       const tickerMap = {
-        'CHAINLINK': 'LINK',
-        'BITCOIN': 'BTC',
-        'ETHEREUM': 'ETH',
-        'CARDANO': 'ADA',
-        'BINANCECOIN': 'BNB',
-        'SOLANA': 'SOL',
-        'POLKADOT': 'DOT',
-        'MATIC-NETWORK': 'MATIC',
-        'AVALANCHE-2': 'AVAX',
-        'TERRA-LUNA': 'LUNA',
-        'DOGECOIN': 'DOGE',
-        'SHIBA-INU': 'SHIB',
-        'PANCAKESWAP-TOKEN': 'CAKE',
-        'SUSHI': 'SUSHI',
-        'UNISWAP': 'UNI',
-        'AAVE': 'AAVE',
-        'COMPOUND-GOVERNANCE-TOKEN': 'COMP'
+        'CHAINLINK': 'LINK', 'BITCOIN': 'BTC', 'ETHEREUM': 'ETH', 'CARDANO': 'ADA', 'BINANCECOIN': 'BNB', 'SOLANA': 'SOL', 'POLKADOT': 'DOT', 'MATIC-NETWORK': 'MATIC', 'AVALANCHE-2': 'AVAX', 'TERRA-LUNA': 'LUNA', 'DOGECOIN': 'DOGE', 'SHIBA-INU': 'SHIB', 'PANCAKESWAP-TOKEN': 'CAKE', 'SUSHI': 'SUSHI', 'UNISWAP': 'UNI', 'AAVE': 'AAVE', 'COMPOUND-GOVERNANCE-TOKEN': 'COMP'
       };
       const ticker = tickerMap[asset.toUpperCase()] || asset.toUpperCase();
       const symbol = type === 'crypto' ? `BINANCE:${ticker}USDT` : `NASDAQ:${asset}`;
@@ -325,19 +351,7 @@
       script.src = 'https://s3.tradingview.com/tv.js?v=2';
       script.onload = () => {
         new TradingView.widget({
-          "container_id": "chart",
-          "symbol": symbol,
-          "interval": "D",
-          "timezone": "Etc/UTC",
-          "theme": "dark",
-          "style": "1",
-          "locale": "en",
-          "toolbar_bg": "#f1f3f6",
-          "enable_publishing": false,
-          "hide_top_toolbar": false,
-          "save_image": false,
-          "height": 400,
-          "width": "100%"
+          container_id: 'chart', symbol, interval: 'D', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', toolbar_bg: '#f1f3f6', enable_publishing: false, hide_top_toolbar: false, save_image: false, height: 400, width: '100%'
         });
       };
       document.head.appendChild(script);
